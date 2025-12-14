@@ -281,7 +281,7 @@ const App: React.FC = () => {
     if (!subjectToRender) return <div />;
 
     return (
-      <div onClick={() => handleClick(dayId, periodId)} className={`relative overflow-hidden w-full min-h-[3.8rem] md:min-h-[4.8rem] p-0.5 md:p-1 shadow-sm flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 hover:brightness-95 rounded md:rounded-lg h-full border-l-[4px] md:border-l-[5px] ${colorTemplate.color}`}>
+      <div onClick={() => handleClick(dayId, periodId)} className={`relative overflow-hidden w-full min-h-[3.8rem] md:min-h-[4.8rem] p-0.5 md:p-1 shadow-sm flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 hover:brightness-95 hover:shadow-md hover:-translate-y-0.5 rounded md:rounded-lg h-full border-l-[4px] md:border-l-[5px] ${colorTemplate.color}`}>
         <div className="flex flex-col gap-0.5 items-center justify-center w-full z-10 pointer-events-none">
             <span className={`font-black text-xs md:text-lg leading-none tracking-tight ${colorTemplate.textColor}`}>{subjectToRender.short}</span>
             <span className={`text-[9px] md:text-xs font-normal leading-none text-slate-600`}>{customTeacher || subjectToRender.teacher}</span>
@@ -320,7 +320,10 @@ const App: React.FC = () => {
         <header className={`backdrop-blur-sm border-b shrink-0 z-50 transition-colors ${isEditMode ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-white/90 border-slate-200'}`}>
           <div className="w-full max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
              <div className="flex items-center gap-3 overflow-hidden flex-1 mr-2">
-                <div className={`p-1.5 rounded-md shrink-0 flex items-center justify-center ${isEditMode ? 'bg-white/20 text-white' : 'bg-orange-50 text-orange-600'}`}>
+                <div 
+                   onClick={() => setIsEditMode(!isEditMode)} 
+                   className={`p-1.5 rounded-md shrink-0 flex items-center justify-center cursor-pointer hover:scale-105 transition-all ${isEditMode ? 'bg-white/20 text-white' : 'bg-orange-50 text-orange-600'}`}
+                >
                   {isEditMode ? <Edit3 className="w-5 h-5" /> : <CalendarDays className="w-5 h-5" />}
                 </div>
                 
