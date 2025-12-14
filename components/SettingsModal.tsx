@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, RotateCcw, CheckSquare, Square, Cloud, Smartphone, ArrowRight, Check, AlertCircle, Copy, LogOut } from 'lucide-react';
+import { X, RotateCcw, CheckSquare, Square } from 'lucide-react';
 import { AVAILABLE_SUBJECTS } from '../constants';
 
 interface SettingsModalProps {
@@ -9,14 +9,6 @@ interface SettingsModalProps {
   activeSubjectIds?: string[];
   onToggleSubject?: (id: string) => void;
   availableForToggleIds?: string[];
-  
-  // Sync Props
-  syncCode: string | null;
-  isSyncing: boolean;
-  onConnectSync: (code: string) => Promise<boolean>;
-  onCreateSync: () => Promise<void>;
-  onDisconnectSync: () => void;
-  lastSyncTime: Date | null;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ 
@@ -25,44 +17,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onReset, 
   activeSubjectIds,
   onToggleSubject,
-  availableForToggleIds,
-  syncCode,
-  isSyncing,
-  onConnectSync,
-  onCreateSync,
-  onDisconnectSync,
-  lastSyncTime
+  availableForToggleIds
 }) => {
   const [confirmStep, setConfirmStep] = useState(false);
   
-  // Sync UI State
-  const [inputCode, setInputCode] = useState('');
-  const [syncError, setSyncError] = useState('');
-  const [showSyncInput, setShowSyncInput] = useState(false);
-
   useEffect(() => {
     if (isOpen) {
         setConfirmStep(false);
-        setSyncError('');
-        setShowSyncInput(false);
-        setInputCode('');
     }
   }, [isOpen]);
-
-  const handleConnect = async () => {
-      if (!inputCode.trim()) return;
-      setSyncError('');
-      const success = await onConnectSync(inputCode.trim());
-      if (!success) {
-          setSyncError('Code ungültig oder nicht gefunden.');
-      } else {
-          setShowSyncInput(false);
-      }
-  };
-
-  const copyCode = () => {
-      if(syncCode) navigator.clipboard.writeText(syncCode);
-  };
 
   if (!isOpen) return null;
 
@@ -87,81 +50,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
           
-          {/* --- CLOUD SYNC SECTION --- */}
-          <section className="bg-indigo-50 rounded-2xl p-5 border border-indigo-100 relative overflow-hidden">
-             {/* Decor */}
-             <div className="absolute -top-6 -right-6 w-20 h-20 bg-indigo-200 rounded-full blur-2xl opacity-50" />
-             
-             <div className="flex items-center gap-2 mb-4 relative z-10">
-                 <Cloud className="w-5 h-5 text-indigo-600" />
-                 <h3 className="font-bold text-indigo-900">Geräte-Sync (Cloud)</h3>
-             </div>
-
-             {!syncCode ? (
-                 <div className="space-y-3 relative z-10">
-                     <p className="text-xs text-indigo-800 leading-relaxed">
-                         Synchronisiere deinen Plan zwischen iPad, Handy und PC. Ohne Anmeldung.
-                     </p>
-                     
-                     {!showSyncInput ? (
-                         <div className="flex flex-col gap-2">
-                            <button 
-                                onClick={() => onCreateSync()}
-                                disabled={isSyncing}
-                                className="w-full py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-sm shadow-md shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
-                            >
-                                {isSyncing ? 'Lädt...' : 'Sync starten (Code erstellen)'}
-                            </button>
-                            <button 
-                                onClick={() => setShowSyncInput(true)}
-                                className="w-full py-2.5 rounded-xl bg-white text-indigo-600 font-bold text-sm border border-indigo-200 hover:bg-indigo-50 transition-all"
-                            >
-                                Code eingeben
-                            </button>
-                         </div>
-                     ) : (
-                         <div className="animate-in slide-in-from-right-4">
-                             <input 
-                                value={inputCode}
-                                onChange={e => setInputCode(e.target.value)}
-                                placeholder="Sync-Code eingeben..."
-                                className="w-full p-3 rounded-xl border border-indigo-200 focus:ring-2 focus:ring-indigo-400 outline-none text-center font-mono text-sm mb-2"
-                             />
-                             {syncError && <p className="text-xs text-red-500 font-bold mb-2 text-center">{syncError}</p>}
-                             <div className="flex gap-2">
-                                <button onClick={() => setShowSyncInput(false)} className="flex-1 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Zurück</button>
-                                <button onClick={handleConnect} disabled={isSyncing} className="flex-1 py-2 rounded-lg bg-indigo-600 text-white font-bold text-xs shadow-sm">
-                                    {isSyncing ? '...' : 'Verbinden'}
-                                </button>
-                             </div>
-                         </div>
-                     )}
-                 </div>
-             ) : (
-                 <div className="relative z-10">
-                     <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-indigo-100 text-center mb-3">
-                         <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Dein Sync-Code</p>
-                         <div className="flex items-center justify-center gap-2 mb-2">
-                            <code className="font-mono font-bold text-lg text-indigo-700 select-all">{syncCode}</code>
-                            <button onClick={copyCode} className="p-1 hover:bg-indigo-50 rounded"><Copy className="w-4 h-4 text-indigo-400" /></button>
-                         </div>
-                         <p className="text-xs text-slate-500">
-                             Gib diesen Code auf deinem anderen Gerät ein, um den Plan zu laden.
-                         </p>
-                     </div>
-                     
-                     <div className="flex items-center justify-between">
-                        <div className="text-[10px] text-indigo-400">
-                            Zuletzt gesynced: {lastSyncTime ? lastSyncTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Gerade eben'}
-                        </div>
-                        <button onClick={onDisconnectSync} className="text-xs text-red-400 hover:text-red-600 font-bold flex items-center gap-1">
-                            <LogOut className="w-3 h-3" /> Trennen
-                        </button>
-                     </div>
-                 </div>
-             )}
-          </section>
-
           {/* Section: Subjects */}
           {activeSubjectIds && onToggleSubject && (
               <section>

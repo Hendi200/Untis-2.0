@@ -1,23 +1,15 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Clock, Settings, Edit3, Plus, CheckCircle2, CalendarDays, Cloud, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Clock, Settings, Edit3, Plus, CheckCircle2, CalendarDays } from 'lucide-react';
 import { DAYS, PERIODS, AVAILABLE_SUBJECTS, INITIAL_MASTER_SCHEDULE } from './constants';
 import { ScheduleEntry, SlotType, MasterSlotConfig, SubjectOption } from './types';
 import SelectionModal from './components/SelectionModal';
 import SettingsModal from './components/SettingsModal';
 import ConfigModal from './components/ConfigModal';
-import { cloudApi } from './utils/api';
 
 const App: React.FC = () => {
   // --- App State ---
   const [schedule, setSchedule] = useState<ScheduleEntry[]>([]);
   
-  // Sync State
-  const [syncCode, setSyncCode] = useState<string | null>(() => {
-    return localStorage.getItem('lb_planer_sync_code_v1');
-  });
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
-
   // Initialize Master Schedule from LocalStorage OR Default Constant
   const [masterSchedule, setMasterSchedule] = useState<Record<string, MasterSlotConfig>>(() => {
     // Check local storage first (if user edited it locally)
@@ -51,32 +43,10 @@ const App: React.FC = () => {
   const STORAGE_KEY_SCHEDULE = 'lb_planer_schedule_local_v4';
   const STORAGE_KEY_MASTER = 'lb_planer_master_local_v4';
   const STORAGE_KEY_SUBJECTS = 'lb_planer_active_subjects_v1';
-  const STORAGE_KEY_SYNC = 'lb_planer_sync_code_v1';
 
   // --- Initialize User Schedule ---
   useEffect(() => {
     const loadInitial = async () => {
-        // If we have a sync code, try to load from cloud first
-        if (syncCode) {
-            setIsSyncing(true);
-            try {
-                const cloudData = await cloudApi.fetchSession(syncCode);
-                if (cloudData && Array.isArray(cloudData.schedule)) {
-                    setSchedule(cloudData.schedule);
-                    // Also sync master schedule if present
-                    if (cloudData.masterSchedule) {
-                        setMasterSchedule(cloudData.masterSchedule);
-                    }
-                    setLastSyncTime(new Date());
-                    return; // Successfully loaded from cloud
-                }
-            } catch (e) {
-                console.error("Failed to load initial cloud data, falling back to local");
-            } finally {
-                setIsSyncing(false);
-            }
-        }
-
         // Fallback to local
         const scheduleData = localStorage.getItem(STORAGE_KEY_SCHEDULE);
         if (scheduleData) {
@@ -90,38 +60,12 @@ const App: React.FC = () => {
     loadInitial();
   }, []); // Only run once on mount
 
-  // --- CLOUD SYNC HELPERS ---
-
-  const saveToCloud = useCallback(async (currentSchedule: ScheduleEntry[], currentMaster: any) => {
-    if (!syncCode) return;
-    setIsSyncing(true);
-    try {
-        await cloudApi.updateSession(syncCode, {
-            schedule: currentSchedule,
-            masterSchedule: currentMaster,
-            updatedAt: new Date().toISOString()
-        });
-        setLastSyncTime(new Date());
-    } catch (e) {
-        console.error("Cloud save failed", e);
-    } finally {
-        setIsSyncing(false);
-    }
-  }, [syncCode]);
-
   // --- Auto-Save Effects ---
   
-  // Save Schedule Locally & Cloud
+  // Save Schedule Locally
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_SCHEDULE, JSON.stringify(schedule));
-    // Debounce cloud save slightly to avoid network spam
-    const timeout = setTimeout(() => {
-        if (syncCode && schedule.length > 0) {
-            saveToCloud(schedule, masterSchedule);
-        }
-    }, 2000);
-    return () => clearTimeout(timeout);
-  }, [schedule, syncCode, saveToCloud, masterSchedule]);
+  }, [schedule]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_MASTER, JSON.stringify(masterSchedule));
@@ -130,57 +74,6 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_SUBJECTS, JSON.stringify(activeSubjectIds));
   }, [activeSubjectIds]);
-
-  useEffect(() => {
-      if (syncCode) {
-        localStorage.setItem(STORAGE_KEY_SYNC, syncCode);
-      } else {
-        localStorage.removeItem(STORAGE_KEY_SYNC);
-      }
-  }, [syncCode]);
-
-
-  // --- Sync Setup Handlers ---
-  const handleConnectSync = async (code: string) => {
-      setIsSyncing(true);
-      try {
-          const data = await cloudApi.fetchSession(code);
-          if (data) {
-              setSyncCode(code);
-              if (data.schedule) setSchedule(data.schedule);
-              if (data.masterSchedule) setMasterSchedule(data.masterSchedule);
-              setLastSyncTime(new Date());
-              return true;
-          }
-      } catch (e) {
-          console.error(e);
-      } finally {
-          setIsSyncing(false);
-      }
-      return false;
-  };
-
-  const handleCreateSync = async () => {
-      setIsSyncing(true);
-      try {
-          const newId = await cloudApi.createSession({
-              schedule,
-              masterSchedule,
-              createdAt: new Date().toISOString()
-          });
-          setSyncCode(newId);
-          setLastSyncTime(new Date());
-      } catch (e) {
-          console.error(e);
-      } finally {
-          setIsSyncing(false);
-      }
-  };
-
-  const handleDisconnectSync = () => {
-      setSyncCode(null);
-      setLastSyncTime(null);
-  };
 
 
   const resetSchedule = () => {
@@ -273,7 +166,7 @@ const App: React.FC = () => {
   // --- DATA ANALYSIS ---
   const offeredLernbueroSubjectIds = useMemo(() => {
     const ids = new Set<string>();
-    Object.values(masterSchedule).forEach(slot => {
+    Object.values(masterSchedule).forEach((slot: MasterSlotConfig) => {
         if (slot.lernbueroOptions) slot.lernbueroOptions.forEach(opt => ids.add(opt.subjectId));
         if (slot.allowedSubjectIds) slot.allowedSubjectIds.forEach(id => ids.add(id));
     });
@@ -296,7 +189,7 @@ const App: React.FC = () => {
     });
   }, [schedule, activeSubjectIds, offeredLernbueroSubjectIds]);
 
-  // --- Render Cell (Simplified for brevity - kept logic same) ---
+  // --- Render Cell ---
   const renderCell = (dayId: string, periodId: number) => {
     const masterSlot = getMasterSlot(dayId, periodId);
     const userEntry = getEntry(dayId, periodId);
@@ -431,19 +324,6 @@ const App: React.FC = () => {
                   {isEditMode ? <Edit3 className="w-5 h-5" /> : <CalendarDays className="w-5 h-5" />}
                 </div>
                 
-                {/* SYNC STATUS INDICATOR */}
-                {syncCode && (
-                   <div className="flex flex-col">
-                     <div className="flex items-center gap-1 text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
-                        <Cloud className="w-3 h-3" />
-                        <span>Cloud aktiv</span>
-                     </div>
-                   </div>
-                )}
-                {isSyncing && (
-                    <RefreshCw className="w-4 h-4 animate-spin text-slate-400" />
-                )}
-
                 {/* Goal Tracker */}
                 {!isEditMode && (
                    <div className="flex items-center gap-1.5 ml-2 border-l pl-3 border-slate-200 h-8 overflow-x-auto no-scrollbar mask-linear-fade flex-1">
@@ -465,7 +345,7 @@ const App: React.FC = () => {
         <main className="flex-1 overflow-auto transition-colors">
           <div className="w-full max-w-7xl mx-auto px-1 md:px-4 py-2 min-h-full">
             <div className="w-full">
-              {/* Grid Header */}
+              {/* Grid Header - Reverted text colors */}
               <div className={`grid grid-cols-[2.5rem_repeat(5,1fr)] md:grid-cols-[4rem_repeat(5,1fr)] gap-1 md:gap-3 mb-2 sticky top-0 z-40 pb-2 transition-colors ${isEditMode ? 'bg-transparent' : 'bg-slate-50/95 backdrop-blur'}`}>
                 <div className="flex items-center justify-center"><Clock className="w-5 h-5 text-slate-300" /></div>
                 {DAYS.map(day => (<div key={day.id} className="text-center"><span className="text-sm md:text-base font-bold text-slate-400 uppercase tracking-wider">{day.short}</span></div>))}
@@ -516,14 +396,6 @@ const App: React.FC = () => {
           activeSubjectIds={activeSubjectIds}
           onToggleSubject={toggleSubject}
           availableForToggleIds={offeredLernbueroSubjectIds}
-          
-          // Sync Props
-          syncCode={syncCode}
-          isSyncing={isSyncing}
-          onConnectSync={handleConnectSync}
-          onCreateSync={handleCreateSync}
-          onDisconnectSync={handleDisconnectSync}
-          lastSyncTime={lastSyncTime}
         />
       </div>
     </div>

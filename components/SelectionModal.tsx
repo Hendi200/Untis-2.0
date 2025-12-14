@@ -62,11 +62,11 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
 
           <div className="p-6 grid grid-cols-2 gap-4 text-center">
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                <span className="block text-xs uppercase text-slate-400 font-bold tracking-wider mb-1">Lehrer</span>
+                <span className="block text-xs uppercase text-slate-500 font-bold tracking-wider mb-1">Lehrer</span>
                 <span className="text-xl font-bold text-slate-700">{currentSubject.teacher || '-'}</span>
             </div>
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                <span className="block text-xs uppercase text-slate-400 font-bold tracking-wider mb-1">Raum</span>
+                <span className="block text-xs uppercase text-slate-500 font-bold tracking-wider mb-1">Raum</span>
                 <span className="text-xl font-bold text-slate-700">{currentSubject.room || '-'}</span>
             </div>
           </div>
@@ -80,7 +80,7 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
                Unterricht entfällt
              </button>
              
-             <button onClick={onClose} className="w-full py-3 text-slate-400 font-medium hover:text-slate-600">
+             <button onClick={onClose} className="w-full py-3 text-slate-500 font-medium hover:text-slate-700">
                Schließen
              </button>
           </div>
@@ -142,7 +142,7 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
         <div className="flex-1 overflow-y-auto p-2">
             {/* LERNBUERO OPTIONS */}
             {selectionOptions.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-slate-400 p-8 text-center">
+                <div className="flex flex-col items-center justify-center h-full text-slate-500 p-8 text-center">
                     <p>Keine Fächer verfügbar.</p>
                     <p className="text-xs mt-2">Überprüfe deine Fächer in den Einstellungen oder den Plan.</p>
                 </div>
@@ -178,7 +178,7 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
                                     </div>
                                     <div>
                                         <div className="font-bold text-slate-700">{subject.name}</div>
-                                        <div className="text-xs text-slate-400 flex gap-2">
+                                        <div className="text-xs text-slate-500 flex gap-2">
                                         {displayTeacher && <span>{displayTeacher}</span>}
                                         {displayTeacher && displayRoom && <span>•</span>}
                                         {displayRoom && <span>{displayRoom}</span>}
